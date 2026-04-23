@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: scalerank-ingress
+  namespace: scalerank
+  annotations:
+    kubernetes.io/ingress.class: alb
+    # Provision an internet-facing ALB (use "internal" for private)
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    # Route traffic directly to pod IPs instead of node ports
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    # Replace with your ACM certificate ARN
+    alb.ingress.kubernetes.io/certificate-arn: ""
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    # Group name allows multiple Ingress resources to share a single ALB
+    alb.ingress.kubernetes.io/group.name: scalerank
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /api/scores/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: score-service
+                port:
+                  number: 80
+          - path: /api/rankings/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ranking-service
+                port:
+                  number: 80

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ranking-service-config
+  namespace: scalerank
+data:
+  PORT: "8080"
+  DB_PORT: "3306"
+  DB_NAME: "scalerank"
+  REDIS_PORT: "6379"
+  # DB_HOST, DB_USER, DB_PASSWORD, REDIS_HOST are injected from ranking-service-secret

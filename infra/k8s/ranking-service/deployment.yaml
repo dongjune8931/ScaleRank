@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ranking-service
+  namespace: scalerank
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ranking-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      # Ensure zero downtime by keeping all existing pods running during rollout
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: ranking-service
+    spec:
+      containers:
+        - name: ranking-service
+          image: ACCOUNT_ID.dkr.ecr.ap-northeast-2.amazonaws.com/scalerank-ranking-service:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: ranking-service-config
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: ranking-service-secret
+                  key: db_host
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ranking-service-secret
+                  key: db_user
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ranking-service-secret
+                  key: db_password
+            - name: REDIS_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: ranking-service-secret
+                  key: redis_host
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
