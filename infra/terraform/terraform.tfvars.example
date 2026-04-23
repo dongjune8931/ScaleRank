@@ -1,0 +1,5 @@
+project_name           = "scalerank"
+cluster_name           = "scalerank-eks"
+db_password            = "your-secure-password"
+grafana_admin_password = "your-grafana-password"
+bastion_key_pair_name  = "scalerank-bastion"
