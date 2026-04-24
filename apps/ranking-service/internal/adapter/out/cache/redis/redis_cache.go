@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel"
@@ -10,6 +11,13 @@ import (
 
 	rankingDomain "github.com/dongjune8931/scalerank/apps/ranking-service/internal/domain/ranking"
 )
+
+func safeUint64(f float64) uint64 {
+	if f < 0 {
+		return 0
+	}
+	return uint64(math.Round(f))
+}
 
 const leaderboardGlobal = "leaderboard:global"
 
@@ -36,7 +44,7 @@ func (r *RedisCache) GetTopN(ctx context.Context, leaderboard string, n int64) (
 	for i, z := range results {
 		entries = append(entries, rankingDomain.RankEntry{
 			UserID: z.Member.(string),
-			Score:  uint64(z.Score),
+			Score:  safeUint64(z.Score),
 			Rank:   int64(i) + 1,
 		})
 	}
@@ -72,7 +80,7 @@ func (r *RedisCache) GetUserRank(ctx context.Context, leaderboard string, userID
 
 	return &rankingDomain.RankEntry{
 		UserID: userID,
-		Score:  uint64(score),
+		Score:  safeUint64(score),
 		Rank:   rank + 1,
 	}, nil
 }

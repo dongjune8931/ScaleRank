@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -41,19 +42,20 @@ func (r *RedisCache) UpdateScore(ctx context.Context, userID string, score uint6
 
 	dailyKey := fmt.Sprintf("leaderboard:daily:%s", now.Format("20060102"))
 	pipe.ZAddGT(ctx, dailyKey, redis.Z{Score: float64(score), Member: userID})
-	endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, time.UTC)
-	pipe.Expire(ctx, dailyKey, time.Until(endOfDay)+time.Hour)
+	tomorrow := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, time.UTC)
+	dailyTTL := tomorrow.Sub(now) + time.Hour
+	pipe.Expire(ctx, dailyKey, dailyTTL)
 
 	year, week := now.ISOWeek()
 	weeklyKey := fmt.Sprintf("leaderboard:weekly:%d%02d", year, week)
 	pipe.ZAddGT(ctx, weeklyKey, redis.Z{Score: float64(score), Member: userID})
-	weekday := int(now.Weekday())
-	if weekday == 0 {
-		weekday = 7
+	daysUntilMonday := (8 - int(now.Weekday())) % 7
+	if daysUntilMonday == 0 {
+		daysUntilMonday = 7
 	}
-	daysUntilEndOfWeek := 7 - weekday
-	endOfWeek := time.Date(now.Year(), now.Month(), now.Day()+daysUntilEndOfWeek, 23, 59, 59, 0, time.UTC)
-	pipe.Expire(ctx, weeklyKey, time.Until(endOfWeek)+time.Hour)
+	nextMonday := time.Date(now.Year(), now.Month(), now.Day()+daysUntilMonday, 0, 0, 0, 0, time.UTC)
+	weeklyTTL := nextMonday.Sub(now) + time.Hour
+	pipe.Expire(ctx, weeklyKey, weeklyTTL)
 
 	if _, err := pipe.Exec(ctx); err != nil {
 		return fmt.Errorf("update score pipeline: %w", err)
@@ -82,6 +84,7 @@ func (r *RedisCache) PopStagingScores(ctx context.Context) (map[string]uint64, e
 	for userID, val := range raw {
 		v, err := strconv.ParseUint(val, 10, 64)
 		if err != nil {
+			log.Printf("warn: failed to parse staged score for user %s, skipping: %v", userID, err)
 			continue
 		}
 		scores[userID] = v

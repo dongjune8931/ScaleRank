@@ -28,6 +28,11 @@ func (h *ScoreHandler) SubmitScore(c *gin.Context) {
 		return
 	}
 
+	if req.UserID == "" || len(req.UserID) > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid userId"})
+		return
+	}
+
 	if err := h.usecase.SubmitScore(c.Request.Context(), req.UserID, req.Score); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

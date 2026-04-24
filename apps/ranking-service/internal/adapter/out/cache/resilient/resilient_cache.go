@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	rankingDomain "github.com/dongjune8931/scalerank/apps/ranking-service/internal/domain/ranking"
@@ -16,25 +15,22 @@ const (
 )
 
 type ResilientCache struct {
-	primary  rankingDomain.Cache
-	fallback rankingDomain.Cache
-	healthy  atomic.Bool
-
-	consecutiveFailures int
+	primary             rankingDomain.Cache
+	fallback            rankingDomain.Cache
 	mu                  sync.Mutex
-
-	stopCh chan struct{}
-	wg     sync.WaitGroup
+	healthy             bool
+	consecutiveFailures int
+	stopCh              chan struct{}
+	wg                  sync.WaitGroup
 }
 
 func NewResilientCache(primary, fallback rankingDomain.Cache) *ResilientCache {
-	rc := &ResilientCache{
+	return &ResilientCache{
 		primary:  primary,
 		fallback: fallback,
+		healthy:  true,
 		stopCh:   make(chan struct{}),
 	}
-	rc.healthy.Store(true)
-	return rc
 }
 
 func (r *ResilientCache) Start(ctx context.Context) {
@@ -65,24 +61,25 @@ func (r *ResilientCache) checkHealth(ctx context.Context) {
 	ok := r.primary.IsHealthy(ctx)
 	r.mu.Lock()
 	defer r.mu.Unlock()
-
 	if ok {
-		if !r.healthy.Load() {
-			log.Println("resilient cache: primary recovered, switching back")
+		if !r.healthy {
+			log.Println("cache: primary recovered, switching back")
 		}
 		r.consecutiveFailures = 0
-		r.healthy.Store(true)
+		r.healthy = true
 	} else {
 		r.consecutiveFailures++
-		if r.consecutiveFailures >= maxConsecutiveFailures && r.healthy.Load() {
-			log.Printf("resilient cache: %d consecutive failures, switching to fallback", r.consecutiveFailures)
-			r.healthy.Store(false)
+		if r.consecutiveFailures >= maxConsecutiveFailures && r.healthy {
+			log.Println("cache: primary unhealthy, switching to fallback")
+			r.healthy = false
 		}
 	}
 }
 
 func (r *ResilientCache) active() rankingDomain.Cache {
-	if r.healthy.Load() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.healthy {
 		return r.primary
 	}
 	return r.fallback

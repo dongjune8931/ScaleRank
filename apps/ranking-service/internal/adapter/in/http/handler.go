@@ -66,6 +66,10 @@ func (h *RankingHandler) GetTopN(c *gin.Context) {
 
 func (h *RankingHandler) GetUserRank(c *gin.Context) {
 	userID := c.Param("userId")
+	if userID == "" || len(userID) > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid userId"})
+		return
+	}
 
 	entry, err := h.usecase.GetUserRank(c.Request.Context(), userID)
 	if err != nil {

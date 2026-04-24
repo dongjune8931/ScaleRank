@@ -28,6 +28,12 @@ func NewMySQLRepository(db *gorm.DB) *MySQLRepository {
 }
 
 func (r *MySQLRepository) GetTopN(ctx context.Context, n int64) ([]rankingDomain.RankEntry, error) {
+	if n <= 0 {
+		n = 100
+	}
+	if n > 1000 {
+		n = 1000
+	}
 	var records []scoreRecord
 	result := r.db.WithContext(ctx).
 		Select("user_id, score").
