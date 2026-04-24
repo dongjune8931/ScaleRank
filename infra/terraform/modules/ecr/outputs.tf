@@ -7,3 +7,8 @@ output "ranking_service_repo_url" {
   description = "ECR repository URL for ranking-service"
   value       = aws_ecr_repository.this["${var.project_name}-ranking-service"].repository_url
 }
+
+output "web_repo_url" {
+  description = "ECR repository URL for web"
+  value       = aws_ecr_repository.this["${var.project_name}-web"].repository_url
+}

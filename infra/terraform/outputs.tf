@@ -23,6 +23,11 @@ output "ranking_service_repo_url" {
   value       = module.ecr.ranking_service_repo_url
 }
 
+output "web_repo_url" {
+  description = "ECR repository URL for web"
+  value       = module.ecr.web_repo_url
+}
+
 output "bastion_ip" {
   description = "Bastion host public IP address"
   value       = module.bastion.bastion_public_ip

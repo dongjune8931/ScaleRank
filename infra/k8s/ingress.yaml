@@ -33,3 +33,10 @@ spec:
                 name: ranking-service
                 port:
                   number: 80
+          - path: /*
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 80

@@ -2,6 +2,7 @@ locals {
   repositories = [
     "${var.project_name}-score-service",
     "${var.project_name}-ranking-service",
+    "${var.project_name}-web",
   ]
 }
 
