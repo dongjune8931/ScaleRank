@@ -114,7 +114,6 @@ func main() {
 
 	// Start background services
 	bgCtx, bgCancel := context.WithCancel(context.Background())
-	defer bgCancel()
 
 	rc.Start(bgCtx)
 
@@ -141,16 +140,22 @@ func main() {
 	<-quit
 	log.Println("shutting down...")
 
+	// 1. Stop HTTP server
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdownCancel()
-
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("server shutdown error: %v", err)
 	}
 
+	// 2. Cancel background context
+	bgCancel()
+
+	// 3. Stop sync service (waits for final sync)
 	if syncSvc != nil {
 		syncSvc.Stop()
 	}
+
+	// 4. Stop resilient cache
 	rc.Stop()
 
 	if redisClient != nil {

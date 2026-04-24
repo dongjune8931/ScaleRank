@@ -57,25 +57,34 @@ func (r *MySQLRepository) GetTopN(ctx context.Context, n int64) ([]rankingDomain
 }
 
 func (r *MySQLRepository) GetUserRank(ctx context.Context, userID string) (*rankingDomain.RankEntry, error) {
-	var rec scoreRecord
-	if err := r.db.WithContext(ctx).Where("user_id = ?", userID).First(&rec).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+	var result *rankingDomain.RankEntry
+
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var rec scoreRecord
+		if err := tx.Where("user_id = ?", userID).First(&rec).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil // result stays nil
+			}
+			return fmt.Errorf("find user score: %w", err)
 		}
-		return nil, fmt.Errorf("get user score from db: %w", err)
-	}
 
-	var rank int64
-	subQuery := r.db.WithContext(ctx).Model(&scoreRecord{}).Select("score").Where("user_id = ?", userID)
-	if err := r.db.WithContext(ctx).Model(&scoreRecord{}).
-		Where("score > (?)", subQuery).
-		Count(&rank).Error; err != nil {
-		return nil, fmt.Errorf("count higher scores from db: %w", err)
-	}
+		var rank int64
+		if err := tx.Model(&scoreRecord{}).
+			Where("score > ?", rec.Score).
+			Count(&rank).Error; err != nil {
+			return fmt.Errorf("count higher scores: %w", err)
+		}
 
-	return &rankingDomain.RankEntry{
-		UserID: rec.UserID,
-		Score:  rec.Score,
-		Rank:   rank + 1,
-	}, nil
+		result = &rankingDomain.RankEntry{
+			UserID: rec.UserID,
+			Score:  rec.Score,
+			Rank:   rank + 1,
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

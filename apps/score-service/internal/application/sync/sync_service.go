@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	scoreDomain "github.com/dongjune8931/scalerank/apps/score-service/internal/domain/score"
@@ -16,7 +15,7 @@ type SyncService struct {
 	cache    scoreDomain.Cache
 	repo     scoreDomain.Repository
 	interval time.Duration
-	stopped  atomic.Bool
+	stopCh   chan struct{}
 	wg       sync.WaitGroup
 }
 
@@ -25,6 +24,7 @@ func NewSyncService(cache scoreDomain.Cache, repo scoreDomain.Repository) *SyncS
 		cache:    cache,
 		repo:     repo,
 		interval: defaultInterval,
+		stopCh:   make(chan struct{}),
 	}
 }
 
@@ -36,12 +36,13 @@ func (s *SyncService) Start(ctx context.Context) {
 		defer ticker.Stop()
 		for {
 			select {
+			case <-s.stopCh:
+				// do one final sync before exit
+				s.sync(ctx)
+				return
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				if s.stopped.Load() {
-					return
-				}
 				s.sync(ctx)
 			}
 		}
@@ -49,7 +50,7 @@ func (s *SyncService) Start(ctx context.Context) {
 }
 
 func (s *SyncService) Stop() {
-	s.stopped.Store(true)
+	close(s.stopCh)
 	s.wg.Wait()
 }
 
