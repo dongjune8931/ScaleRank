@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	goredis "github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -35,6 +36,9 @@ func (scoreRecord) TableName() string { return "scores" }
 
 func main() {
 	cfg := infrastructure.Load()
+
+	shutdown := infrastructure.InitTracer("ranking-service", cfg.OTelEndpoint)
+	defer shutdown(context.Background())
 
 	// Init MySQL
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=UTC",
@@ -85,6 +89,7 @@ func main() {
 
 	// Build HTTP handler and register routes
 	router := gin.Default()
+	router.Use(otelgin.Middleware("ranking-service"))
 	handler := httpAdapter.NewRankingHandler(usecase)
 	handler.RegisterRoutes(router)
 

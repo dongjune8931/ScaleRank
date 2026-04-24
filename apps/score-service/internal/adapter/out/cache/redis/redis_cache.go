@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 const (
@@ -24,6 +26,11 @@ func NewRedisCache(client *redis.Client) *RedisCache {
 }
 
 func (r *RedisCache) UpdateScore(ctx context.Context, userID string, score float64) error {
+	tracer := otel.Tracer("score-service")
+	ctx, span := tracer.Start(ctx, "redis.zadd")
+	defer span.End()
+	span.SetAttributes(attribute.String("user.id", userID), attribute.Float64("score", score))
+
 	now := time.Now().UTC()
 
 	pipe := r.client.Pipeline()

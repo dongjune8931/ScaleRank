@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 
 	rankingDomain "github.com/dongjune8931/scalerank/apps/ranking-service/internal/domain/ranking"
 )
@@ -20,6 +22,11 @@ func NewRedisCache(client *redis.Client) *RedisCache {
 }
 
 func (r *RedisCache) GetTopN(ctx context.Context, leaderboard string, n int64) ([]rankingDomain.RankEntry, error) {
+	tracer := otel.Tracer("ranking-service")
+	ctx, span := tracer.Start(ctx, "redis.zrevrange")
+	defer span.End()
+	span.SetAttributes(attribute.String("leaderboard", leaderboard), attribute.Int64("limit", n))
+
 	results, err := r.client.ZRevRangeWithScores(ctx, leaderboard, 0, n-1).Result()
 	if err != nil {
 		return nil, fmt.Errorf("zrevrange %s: %w", leaderboard, err)
@@ -37,6 +44,11 @@ func (r *RedisCache) GetTopN(ctx context.Context, leaderboard string, n int64) (
 }
 
 func (r *RedisCache) GetUserRank(ctx context.Context, leaderboard string, userID string) (*rankingDomain.RankEntry, error) {
+	tracer := otel.Tracer("ranking-service")
+	ctx, span := tracer.Start(ctx, "redis.zrevrank")
+	defer span.End()
+	span.SetAttributes(attribute.String("user.id", userID))
+
 	pipe := r.client.Pipeline()
 	rankCmd := pipe.ZRevRank(ctx, leaderboard, userID)
 	scoreCmd := pipe.ZScore(ctx, leaderboard, userID)
