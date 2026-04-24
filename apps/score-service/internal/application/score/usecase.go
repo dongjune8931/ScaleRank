@@ -15,7 +15,7 @@ func NewScoreUseCase(cache scoreDomain.Cache) *ScoreUseCase {
 	return &ScoreUseCase{cache: cache}
 }
 
-func (uc *ScoreUseCase) SubmitScore(ctx context.Context, userID string, score float64) error {
+func (uc *ScoreUseCase) SubmitScore(ctx context.Context, userID string, score uint64) error {
 	if err := uc.cache.UpdateScore(ctx, userID, score); err != nil {
 		return fmt.Errorf("submit score: %w", err)
 	}

@@ -36,7 +36,7 @@ func (r *RedisCache) GetTopN(ctx context.Context, leaderboard string, n int64) (
 	for i, z := range results {
 		entries = append(entries, rankingDomain.RankEntry{
 			UserID: z.Member.(string),
-			Score:  z.Score,
+			Score:  uint64(z.Score),
 			Rank:   int64(i) + 1,
 		})
 	}
@@ -72,7 +72,7 @@ func (r *RedisCache) GetUserRank(ctx context.Context, leaderboard string, userID
 
 	return &rankingDomain.RankEntry{
 		UserID: userID,
-		Score:  score,
+		Score:  uint64(score),
 		Rank:   rank + 1,
 	}, nil
 }

@@ -13,8 +13,9 @@ const batchSize = 500
 
 type scoreRecord struct {
 	UserID    string    `gorm:"primaryKey;column:user_id"`
-	Score     float64   `gorm:"column:score"`
+	Score     uint64    `gorm:"column:score;type:bigint unsigned"`
 	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
+	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
 }
 
 func (scoreRecord) TableName() string { return "scores" }
@@ -27,7 +28,7 @@ func NewMySQLRepository(db *gorm.DB) *MySQLRepository {
 	return &MySQLRepository{db: db}
 }
 
-func (r *MySQLRepository) BatchUpsertScores(ctx context.Context, scores map[string]float64) error {
+func (r *MySQLRepository) BatchUpsertScores(ctx context.Context, scores map[string]uint64) error {
 	records := make([]scoreRecord, 0, len(scores))
 	for userID, score := range scores {
 		records = append(records, scoreRecord{

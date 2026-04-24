@@ -4,6 +4,6 @@ import "time"
 
 type Score struct {
 	UserID    string
-	Value     float64
+	Value     uint64
 	UpdatedAt time.Time
 }

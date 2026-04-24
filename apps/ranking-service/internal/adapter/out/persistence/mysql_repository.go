@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -11,8 +12,9 @@ import (
 )
 
 type scoreRecord struct {
-	UserID string  `gorm:"primaryKey;column:user_id"`
-	Score  float64 `gorm:"column:score"`
+	UserID    string    `gorm:"primaryKey;column:user_id"`
+	Score     uint64    `gorm:"column:score;type:bigint unsigned"`
+	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
 }
 
 func (scoreRecord) TableName() string { return "scores" }

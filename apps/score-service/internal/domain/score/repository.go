@@ -3,11 +3,11 @@ package score
 import "context"
 
 type Repository interface {
-	BatchUpsertScores(ctx context.Context, scores map[string]float64) error
+	BatchUpsertScores(ctx context.Context, scores map[string]uint64) error
 }
 
 type Cache interface {
-	UpdateScore(ctx context.Context, userID string, score float64) error
-	PopStagingScores(ctx context.Context) (map[string]float64, error)
+	UpdateScore(ctx context.Context, userID string, score uint64) error
+	PopStagingScores(ctx context.Context) (map[string]uint64, error)
 	IsHealthy(ctx context.Context) bool
 }

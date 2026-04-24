@@ -30,8 +30,9 @@ import (
 
 type scoreRecord struct {
 	UserID    string    `gorm:"primaryKey;column:user_id"`
-	Score     float64   `gorm:"column:score"`
+	Score     uint64    `gorm:"column:score;type:bigint unsigned"`
 	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
+	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
 }
 
 func (scoreRecord) TableName() string { return "scores" }

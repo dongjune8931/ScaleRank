@@ -88,11 +88,11 @@ func (r *ResilientCache) active() scoreDomain.Cache {
 	return r.fallback
 }
 
-func (r *ResilientCache) UpdateScore(ctx context.Context, userID string, score float64) error {
+func (r *ResilientCache) UpdateScore(ctx context.Context, userID string, score uint64) error {
 	return r.active().UpdateScore(ctx, userID, score)
 }
 
-func (r *ResilientCache) PopStagingScores(ctx context.Context) (map[string]float64, error) {
+func (r *ResilientCache) PopStagingScores(ctx context.Context) (map[string]uint64, error) {
 	return r.active().PopStagingScores(ctx)
 }
 

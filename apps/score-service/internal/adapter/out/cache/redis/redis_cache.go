@@ -25,28 +25,28 @@ func NewRedisCache(client *redis.Client) *RedisCache {
 	return &RedisCache{client: client}
 }
 
-func (r *RedisCache) UpdateScore(ctx context.Context, userID string, score float64) error {
+func (r *RedisCache) UpdateScore(ctx context.Context, userID string, score uint64) error {
 	tracer := otel.Tracer("score-service")
 	ctx, span := tracer.Start(ctx, "redis.zadd")
 	defer span.End()
-	span.SetAttributes(attribute.String("user.id", userID), attribute.Float64("score", score))
+	span.SetAttributes(attribute.String("user.id", userID), attribute.Int64("score", int64(score)))
 
 	now := time.Now().UTC()
 
 	pipe := r.client.Pipeline()
 
-	pipe.ZAddGT(ctx, leaderboardGlobal, redis.Z{Score: score, Member: userID})
+	pipe.ZAddGT(ctx, leaderboardGlobal, redis.Z{Score: float64(score), Member: userID})
 
-	pipe.HSet(ctx, stagingKey, userID, strconv.FormatFloat(score, 'f', -1, 64))
+	pipe.HSet(ctx, stagingKey, userID, strconv.FormatUint(score, 10))
 
 	dailyKey := fmt.Sprintf("leaderboard:daily:%s", now.Format("20060102"))
-	pipe.ZAddGT(ctx, dailyKey, redis.Z{Score: score, Member: userID})
+	pipe.ZAddGT(ctx, dailyKey, redis.Z{Score: float64(score), Member: userID})
 	endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, time.UTC)
 	pipe.Expire(ctx, dailyKey, time.Until(endOfDay)+time.Hour)
 
 	year, week := now.ISOWeek()
 	weeklyKey := fmt.Sprintf("leaderboard:weekly:%d%02d", year, week)
-	pipe.ZAddGT(ctx, weeklyKey, redis.Z{Score: score, Member: userID})
+	pipe.ZAddGT(ctx, weeklyKey, redis.Z{Score: float64(score), Member: userID})
 	weekday := int(now.Weekday())
 	if weekday == 0 {
 		weekday = 7
@@ -61,10 +61,10 @@ func (r *RedisCache) UpdateScore(ctx context.Context, userID string, score float
 	return nil
 }
 
-func (r *RedisCache) PopStagingScores(ctx context.Context) (map[string]float64, error) {
+func (r *RedisCache) PopStagingScores(ctx context.Context) (map[string]uint64, error) {
 	if err := r.client.Rename(ctx, stagingKey, syncingKey).Err(); err != nil {
 		if err == redis.Nil || err.Error() == "ERR no such key" {
-			return map[string]float64{}, nil
+			return map[string]uint64{}, nil
 		}
 		return nil, fmt.Errorf("rename staging key: %w", err)
 	}
@@ -78,13 +78,13 @@ func (r *RedisCache) PopStagingScores(ctx context.Context) (map[string]float64, 
 		return nil, fmt.Errorf("del syncing key: %w", err)
 	}
 
-	scores := make(map[string]float64, len(raw))
+	scores := make(map[string]uint64, len(raw))
 	for userID, val := range raw {
-		f, err := strconv.ParseFloat(val, 64)
+		v, err := strconv.ParseUint(val, 10, 64)
 		if err != nil {
 			continue
 		}
-		scores[userID] = f
+		scores[userID] = v
 	}
 	return scores, nil
 }
