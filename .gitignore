@@ -12,6 +12,11 @@
 *.test
 *.out
 
+# Node
+**/node_modules/
+**/dist/
+**/.next/
+
 # Docker
 .dockerignore
 
