@@ -42,15 +42,13 @@ resource "kubernetes_ingress_v1" "argocd" {
     name      = "argocd-server-ingress"
     namespace = kubernetes_namespace.argocd.metadata[0].name
     annotations = {
-      "kubernetes.io/ingress.class"                        = "alb"
-      "alb.ingress.kubernetes.io/scheme"                   = "internet-facing"
-      "alb.ingress.kubernetes.io/target-type"              = "ip"
-      "alb.ingress.kubernetes.io/backend-protocol"         = "HTTPS"
-      "alb.ingress.kubernetes.io/backend-protocol-version" = "HTTP2"
-      "alb.ingress.kubernetes.io/listen-ports"             = "[{\"HTTPS\":443},{\"HTTP\":80}]"
-      "alb.ingress.kubernetes.io/ssl-redirect"             = "443"
-      "alb.ingress.kubernetes.io/healthcheck-path"         = "/healthz"
-      "alb.ingress.kubernetes.io/healthcheck-protocol"     = "HTTPS"
+      "kubernetes.io/ingress.class"                    = "alb"
+      "alb.ingress.kubernetes.io/scheme"               = "internet-facing"
+      "alb.ingress.kubernetes.io/target-type"          = "ip"
+      "alb.ingress.kubernetes.io/backend-protocol"     = "HTTPS"
+      "alb.ingress.kubernetes.io/listen-ports"         = "[{\"HTTP\":80}]"
+      "alb.ingress.kubernetes.io/healthcheck-path"     = "/healthz"
+      "alb.ingress.kubernetes.io/healthcheck-protocol" = "HTTPS"
     }
   }
 

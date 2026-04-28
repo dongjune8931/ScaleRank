@@ -17,3 +17,8 @@ output "nat_gateway_id" {
   description = "NAT Gateway ID"
   value       = aws_nat_gateway.this.id
 }
+
+output "db_subnet_ids" {
+  description = "Subnet IDs for RDS/ElastiCache subnet groups (2 AZs required by AWS)"
+  value       = [aws_subnet.private[0].id, aws_subnet.private_db.id]
+}

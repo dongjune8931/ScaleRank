@@ -32,7 +32,7 @@ resource "aws_security_group" "rds" {
 # ──────────────────────────────────────────────────────────────────────────────
 resource "aws_db_subnet_group" "this" {
   name        = "${var.project_name}-db-subnet-group"
-  subnet_ids  = var.private_subnet_ids
+  subnet_ids  = var.db_subnet_ids
   description = "Subnet group for ${var.project_name} RDS"
 
   tags = {
@@ -81,7 +81,7 @@ resource "aws_db_instance" "this" {
   vpc_security_group_ids = [aws_security_group.rds.id]
   multi_az               = false
   skip_final_snapshot    = true
-  backup_retention_period = 7
+  backup_retention_period = 0
   publicly_accessible    = false
 
   tags = {

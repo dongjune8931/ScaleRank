@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: ranking-service
-          image: ACCOUNT_ID.dkr.ecr.ap-northeast-2.amazonaws.com/scalerank-ranking-service:latest
+          image: 951897726122.dkr.ecr.ap-northeast-2.amazonaws.com/scalerank-ranking-service:latest
           ports:
             - containerPort: 8080
           envFrom:
@@ -53,8 +53,8 @@ spec:
               cpu: 100m
               memory: 128Mi
             limits:
-              cpu: 500m
-              memory: 256Mi
+              cpu: 200m
+              memory: 192Mi
           livenessProbe:
             httpGet:
               path: /health

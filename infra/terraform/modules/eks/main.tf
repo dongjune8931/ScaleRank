@@ -146,7 +146,7 @@ resource "aws_eks_cluster" "this" {
   role_arn = aws_iam_role.cluster.arn
 
   vpc_config {
-    subnet_ids              = var.private_subnet_ids
+    subnet_ids              = var.cluster_subnet_ids
     security_group_ids      = [aws_security_group.cluster.id]
     endpoint_private_access = true
     endpoint_public_access  = true
@@ -188,6 +188,7 @@ resource "aws_eks_node_group" "general" {
   subnet_ids      = var.private_subnet_ids
 
   capacity_type  = "SPOT"
+  ami_type       = "AL2023_x86_64_STANDARD"
   instance_types = ["t3.small", "t3.medium"]
 
   scaling_config {
@@ -224,6 +225,7 @@ resource "aws_eks_node_group" "loadtest" {
   subnet_ids      = var.private_subnet_ids
 
   capacity_type  = "SPOT"
+  ami_type       = "AL2023_x86_64_STANDARD"
   instance_types = ["c5.large"]
 
   scaling_config {
@@ -243,9 +245,12 @@ resource "aws_eks_node_group" "loadtest" {
   }
 
   tags = {
-    Name                                                  = "${var.cluster_name}-loadtest"
-    "k8s.io/cluster-autoscaler/enabled"                   = "true"
-    "k8s.io/cluster-autoscaler/${var.cluster_name}"       = "owned"
+    Name                                                              = "${var.cluster_name}-loadtest"
+    "k8s.io/cluster-autoscaler/enabled"                              = "true"
+    "k8s.io/cluster-autoscaler/${var.cluster_name}"                  = "owned"
+    # Scale-from-zero: tell Cluster Autoscaler about labels/taints before nodes exist
+    "k8s.io/cluster-autoscaler/node-template/label/role"            = "loadtest"
+    "k8s.io/cluster-autoscaler/node-template/taint/role"            = "loadtest:NoSchedule"
   }
 
   depends_on = [

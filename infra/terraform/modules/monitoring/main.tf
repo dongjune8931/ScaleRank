@@ -31,11 +31,9 @@ resource "helm_release" "kube_prometheus_stack" {
       }
       prometheus = {
         prometheusSpec = {
-          retention = "7d"
-          storageSpec = {}
-          remoteWriteReceivers = {
-            enabled = true
-          }
+          retention                = "7d"
+          storageSpec              = {}
+          enableRemoteWriteReceiver = true
         }
       }
       alertmanager = {
@@ -66,6 +64,9 @@ resource "helm_release" "opentelemetry_collector" {
 
   values = [
     yamlencode({
+      image = {
+        repository = "otel/opentelemetry-collector-contrib"
+      }
       mode = "deployment"
       config = {
         receivers = {
@@ -85,7 +86,7 @@ resource "helm_release" "opentelemetry_collector" {
             endpoint = "0.0.0.0:8889"
           }
           otlp = {
-            endpoint = "jaeger-collector.monitoring.svc.cluster.local:14250"
+            endpoint = "jaeger-all-in-one.monitoring.svc.cluster.local:4317"
             tls = {
               insecure = true
             }
@@ -134,6 +135,7 @@ resource "helm_release" "opentelemetry_collector" {
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 3. Jaeger (all-in-one)
+
 # ──────────────────────────────────────────────────────────────────────────────
 resource "helm_release" "jaeger" {
   name       = "jaeger"
@@ -151,14 +153,7 @@ resource "helm_release" "jaeger" {
       allInOne = {
         enabled = true
         ingress = {
-          enabled = true
-          annotations = {
-            "kubernetes.io/ingress.class"               = "alb"
-            "alb.ingress.kubernetes.io/scheme"          = "internet-facing"
-            "alb.ingress.kubernetes.io/target-type"     = "ip"
-            "alb.ingress.kubernetes.io/listen-ports"    = "[{\"HTTP\":80}]"
-          }
-          hosts = [""]
+          enabled = false
         }
       }
       storage = {
@@ -177,4 +172,42 @@ resource "helm_release" "jaeger" {
   ]
 
   depends_on = [kubernetes_namespace.monitoring]
+}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Ingress – Jaeger UI via ALB
+# ──────────────────────────────────────────────────────────────────────────────
+resource "kubernetes_ingress_v1" "jaeger" {
+  metadata {
+    name      = "jaeger-ingress"
+    namespace = kubernetes_namespace.monitoring.metadata[0].name
+    annotations = {
+      "kubernetes.io/ingress.class"                = "alb"
+      "alb.ingress.kubernetes.io/scheme"           = "internet-facing"
+      "alb.ingress.kubernetes.io/target-type"      = "ip"
+      "alb.ingress.kubernetes.io/listen-ports"     = "[{\"HTTP\":80}]"
+      "alb.ingress.kubernetes.io/healthcheck-path" = "/"
+    }
+  }
+
+  spec {
+    rule {
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "jaeger-all-in-one"
+              port {
+                number = 16686
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [helm_release.jaeger]
 }

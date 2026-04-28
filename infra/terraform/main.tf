@@ -27,29 +27,25 @@ provider "aws" {
   }
 }
 
-data "aws_eks_cluster" "this" {
-  name = module.eks.cluster_name
-
-  depends_on = [module.eks]
-}
-
-data "aws_eks_cluster_auth" "this" {
-  name = module.eks.cluster_name
-
-  depends_on = [module.eks]
-}
-
 provider "kubernetes" {
-  host                   = data.aws_eks_cluster.this.endpoint
-  cluster_ca_certificate = base64decode(data.aws_eks_cluster.this.certificate_authority[0].data)
-  token                  = data.aws_eks_cluster_auth.this.token
+  host = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_ca)
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args        = ["eks", "get-token", "--cluster-name", var.cluster_name, "--region", "ap-northeast-2"]
+  }
 }
 
 provider "helm" {
   kubernetes {
-    host                   = data.aws_eks_cluster.this.endpoint
-    cluster_ca_certificate = base64decode(data.aws_eks_cluster.this.certificate_authority[0].data)
-    token                  = data.aws_eks_cluster_auth.this.token
+    host = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_ca)
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "aws"
+      args        = ["eks", "get-token", "--cluster-name", var.cluster_name, "--region", "ap-northeast-2"]
+    }
   }
 }
 
@@ -74,6 +70,7 @@ module "eks" {
   cluster_version    = var.cluster_version
   vpc_id             = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
+  cluster_subnet_ids = module.vpc.db_subnet_ids
 }
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -82,13 +79,13 @@ module "eks" {
 module "rds" {
   source = "./modules/rds"
 
-  project_name            = var.project_name
-  vpc_id                  = module.vpc.vpc_id
-  private_subnet_ids      = module.vpc.private_subnet_ids
-  node_security_group_id  = module.eks.cluster_security_group_id
-  db_name                 = var.db_name
-  db_username             = var.db_username
-  db_password             = var.db_password
+  project_name           = var.project_name
+  vpc_id                 = module.vpc.vpc_id
+  db_subnet_ids          = module.vpc.db_subnet_ids
+  node_security_group_id = module.eks.cluster_security_group_id
+  db_name                = var.db_name
+  db_username            = var.db_username
+  db_password            = var.db_password
 }
 
 # ──────────────────────────────────────────────────────────────────────────────

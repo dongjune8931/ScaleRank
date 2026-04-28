@@ -8,4 +8,5 @@ data:
   DB_PORT: "3306"
   DB_NAME: "scalerank"
   REDIS_PORT: "6379"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://opentelemetry-collector.monitoring.svc.cluster.local:4317"
   # DB_HOST, DB_USER, DB_PASSWORD, REDIS_HOST are injected from ranking-service-secret

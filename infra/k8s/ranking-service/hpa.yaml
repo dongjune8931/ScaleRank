@@ -9,27 +9,27 @@ spec:
     kind: Deployment
     name: ranking-service
   minReplicas: 2
-  maxReplicas: 10
+  maxReplicas: 4
   metrics:
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 60
+          averageUtilization: 80
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: 70
+          averageUtilization: 80
   behavior:
     scaleUp:
-      stabilizationWindowSeconds: 30
+      stabilizationWindowSeconds: 60
       policies:
         - type: Pods
-          value: 3
-          periodSeconds: 30
+          value: 1
+          periodSeconds: 60
     scaleDown:
       stabilizationWindowSeconds: 180
       policies:
